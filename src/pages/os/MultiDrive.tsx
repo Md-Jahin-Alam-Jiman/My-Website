@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { HardDrive, Cloud, AlertCircle, Plus, RefreshCw, Folder, File, Settings, PieChart } from 'lucide-react';
+import { HardDrive, Cloud, AlertCircle, Plus, RefreshCw, Folder, File, Settings, PieChart as PieChartIcon } from 'lucide-react';
 import { clsx } from "clsx";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useAppStore } from '../../lib/store';
 
 export default function MultiDrive() {
-  const [drives, setDrives] = useState([
-    { id: 1, email: "jiman.dev@gmail.com", used: 12.5, total: 15, status: "warning" },
-    { id: 2, email: "jiman.academic@gmail.com", used: 2.1, total: 15, status: "healthy" },
-    { id: 3, email: "jiman.backup@gmail.com", used: 14.8, total: 15, status: "critical" },
-  ]);
+  const { profile } = useAppStore();
+  const drives = profile.moduleData.drive.drives;
+  
+  const totalUsed = drives.reduce((acc, d) => acc + d.used, 0);
+  const totalCapacity = drives.reduce((acc, d) => acc + d.total, 0);
+  const freeSpace = totalCapacity - totalUsed;
+  const utilization = Math.round((totalUsed / totalCapacity) * 100);
+
+  const chartData = [
+    { name: 'Used', value: totalUsed, color: '#06b6d4' },
+    { name: 'Free', value: freeSpace, color: '#312e81' }
+  ];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -91,30 +100,46 @@ export default function MultiDrive() {
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
                <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
                   <span className="p-1.5 bg-purple-500/20 rounded-md text-purple-400">
-                    <PieChart className="w-5 h-5" />
+                    <PieChartIcon className="w-5 h-5" />
                   </span>
                   Global Cluster Usage
                </h2>
-               <div className="flex items-center justify-center py-6">
-                  <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-8 border-white/5">
-                     <svg className="absolute inset-0 w-full h-full -rotate-90">
-                        <circle cx="50%" cy="50%" r="46%" className="stroke-cyan-500/50 stroke-[8%] fill-none" strokeDasharray="100 100" strokeDashoffset="25" />
-                        <circle cx="50%" cy="50%" r="46%" className="stroke-indigo-500/50 stroke-[8%] fill-none" strokeDasharray="100 100" strokeDashoffset="75" />
-                     </svg>
-                     <div className="text-center">
-                        <div className="text-3xl font-bold font-mono">29.4</div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-widest mt-1">GB Total Used</div>
-                     </div>
-                  </div>
+               <div className="flex items-center justify-center py-4 relative h-64">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <PieChart>
+                       <Pie
+                         data={chartData}
+                         cx="50%"
+                         cy="50%"
+                         innerRadius={60}
+                         outerRadius={80}
+                         paddingAngle={5}
+                         dataKey="value"
+                         stroke="none"
+                       >
+                         {chartData.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={entry.color} />
+                         ))}
+                       </Pie>
+                       <Tooltip 
+                         contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                         itemStyle={{ color: '#fff' }}
+                       />
+                     </PieChart>
+                   </ResponsiveContainer>
+                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                     <div className="text-3xl font-bold font-mono">{totalUsed.toFixed(1)}</div>
+                     <div className="text-[10px] text-white/40 uppercase tracking-widest mt-1">GB Total Used</div>
+                   </div>
                </div>
                <div className="grid grid-cols-2 gap-4 text-center mt-2">
                   <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                      <div className="text-[10px] text-white/40 uppercase mb-1">Free Space</div>
-                     <div className="text-lg font-mono text-emerald-400">15.6 GB</div>
+                     <div className="text-lg font-mono text-emerald-400">{freeSpace.toFixed(1)} GB</div>
                   </div>
                   <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                      <div className="text-[10px] text-white/40 uppercase mb-1">Utilization</div>
-                     <div className="text-lg font-mono text-cyan-400">65%</div>
+                     <div className="text-lg font-mono text-cyan-400">{utilization}%</div>
                   </div>
                </div>
             </div>

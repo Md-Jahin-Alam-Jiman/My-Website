@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { HardDrive, Activity, Cpu, Network, Code, Server, BookOpen } from 'lucide-react';
+import { useAppStore } from '../../lib/store';
 
 export default function Overview() {
+  const { profile } = useAppStore();
+  const tasks = profile.moduleData.overview.tasks;
   const stats = [
     { label: "Memory Usage", value: "3.4 GB", icon: Cpu, color: "text-amber-400", bg: "bg-amber-500/10" },
     { label: "Cloud Storage", value: "45% Full", icon: HardDrive, color: "text-cyan-400", bg: "bg-cyan-500/10" },
@@ -81,10 +84,10 @@ export default function Overview() {
              Quick Tasks
            </h2>
            <div className="space-y-2 text-sm">
-              {["Review Machine Learning notes", "Solve 2 LeetCode problems", "Draft research paper", "Check server logs"].map((task, i) => (
-                 <label key={i} className="flex items-start space-x-3 p-3 rounded-lg bg-black/20 hover:bg-white/10 border border-white/5 cursor-pointer transition-colors">
-                    <input type="checkbox" className="mt-1 bg-black border-white/20 rounded text-cyan-500 focus:ring-cyan-500/20" />
-                    <span className="text-white/80">{task}</span>
+              {tasks.map((task) => (
+                 <label key={task.id} className="flex items-start space-x-3 p-3 rounded-lg bg-black/20 hover:bg-white/10 border border-white/5 cursor-pointer transition-colors">
+                    <input type="checkbox" defaultChecked={task.completed} className="mt-1 bg-black border-white/20 rounded text-cyan-500 focus:ring-cyan-500/20" />
+                    <span className="text-white/80">{task.name}</span>
                  </label>
               ))}
            </div>
