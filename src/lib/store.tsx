@@ -126,32 +126,78 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [adminCredentials, setAdminCredentials] = useState<AdminType>(DEFAULT_ADMIN);
 
   useEffect(() => {
-    const savedProfile = localStorage.getItem('ja_os_profile');
-    const savedAdmin = localStorage.getItem('ja_os_admin');
+    // 1. Load from server
+    const loadData = async () => {
+      try {
+        const profileRes = await fetch('/api/profile');
+        const adminRes = await fetch('/api/admin');
+        
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (Object.keys(profileData).length > 0) {
+            setProfile({ ...DEFAULT_PROFILE, ...profileData });
+          } else {
+            // Fallback to localStorage if server is empty
+            const savedProfile = localStorage.getItem('ja_os_profile');
+            if (savedProfile) {
+              const parsed = JSON.parse(savedProfile);
+              setProfile({ ...DEFAULT_PROFILE, ...parsed });
+              // Sync to server
+              await updateProfile({ ...DEFAULT_PROFILE, ...parsed });
+            }
+          }
+        }
 
-    if (savedProfile) {
-      try { 
-        const parsed = JSON.parse(savedProfile);
-        setProfile({ ...DEFAULT_PROFILE, ...parsed }); 
-      } catch (e) {}
-    }
-    if (savedAdmin) {
-      try { setAdminCredentials(JSON.parse(savedAdmin)); } catch (e) {}
-    }
+        if (adminRes.ok) {
+          const adminData = await adminRes.json();
+          if (Object.keys(adminData).length > 0) {
+            setAdminCredentials(adminData);
+          } else {
+            // Fallback to localStorage
+            const savedAdmin = localStorage.getItem('ja_os_admin');
+            if (savedAdmin) {
+              setAdminCredentials(JSON.parse(savedAdmin));
+              // Sync to server
+              await updateAdminCredentials(JSON.parse(savedAdmin));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load from server, using local storage fallback", err);
+        const savedProfile = localStorage.getItem('ja_os_profile');
+        const savedAdmin = localStorage.getItem('ja_os_admin');
+        if (savedProfile) setProfile({ ...DEFAULT_PROFILE, ...JSON.parse(savedProfile) });
+        if (savedAdmin) setAdminCredentials(JSON.parse(savedAdmin));
+      }
+    };
+
+    loadData();
   }, []);
 
-  const updateProfile = (newData: Partial<ProfileType>) => {
+  const updateProfile = async (newData: Partial<ProfileType>) => {
     setProfile(prev => {
       const updated = { ...prev, ...newData };
       localStorage.setItem('ja_os_profile', JSON.stringify(updated));
+      // Async sync to server
+      fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      }).catch(console.error);
       return updated;
     });
   };
 
-  const updateAdminCredentials = (newData: Partial<AdminType>) => {
+  const updateAdminCredentials = async (newData: Partial<AdminType>) => {
     setAdminCredentials(prev => {
       const updated = { ...prev, ...newData };
       localStorage.setItem('ja_os_admin', JSON.stringify(updated));
+      // Async sync to server
+      fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      }).catch(console.error);
       return updated;
     });
   };
